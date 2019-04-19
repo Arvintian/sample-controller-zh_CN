@@ -1,78 +1,68 @@
 # sample-controller
 
-This repository implements a simple controller for watching Foo resources as
-defined with a CustomResourceDefinition (CRD).
+本库实现了一个简单的controller监控以CustomResourceDefinition(CRD)方式定义的新资源类型Foo.
 
-**Note:** go-get or vendor this package as `k8s.io/sample-controller`.
+**提示**: go-get或者包引用请使用`k8s.io/sample-controller`地址
 
-This particular example demonstrates how to perform basic operations such as:
+本例演示了如下的基本操作:
 
-* How to register a new custom resource (custom resource type) of type `Foo` using a CustomResourceDefinition.
-* How to create/get/list instances of your new resource type `Foo`.
-* How to setup a controller on resource handling create/update/delete events.
+* 如何使用CustomResourceDefinition注册一个新的用户资源类型
+* 如何create/get/list新资源类型实例
+* 如何设置一个新的controller响应新资源的create/update/delete事件
 
-It makes use of the generators in [k8s.io/code-generator](https://github.com/kubernetes/code-generator)
-to generate a typed client, informers, listers and deep-copy functions. You can
-do this yourself using the `./hack/update-codegen.sh` script.
+本例使用[k8s.io/code-generator](https://github.com/kubernetes/code-generator)来生成基本的client,informer,lister和deep-copy函数. 你可以通过`./hack/update-codegen.sh`来执行生成.
 
-The `update-codegen` script will automatically generate the following files &
-directories:
+`update-codegen`将会自动生成如下文件和目录:
 
 * `pkg/apis/samplecontroller/v1alpha1/zz_generated.deepcopy.go`
 * `pkg/generated/`
 
-Changes should not be made to these files manually, and when creating your own
-controller based off of this implementation you should not copy these files and
-instead run the `update-codegen` script to generate your own.
+这些文件不应该手动修改,如果你创建你自己的controller基于本例,你不应该复制这些文件而是执行`update-codegen`来重新生成.
 
-## Details
+## 细节
 
-The sample controller uses [client-go library](https://github.com/kubernetes/client-go/tree/master/tools/cache) extensively.
-The details of interaction points of the sample controller with various mechanisms from this library are
-explained [here](docs/controller-client-go.md).
+Sample controller 在很多地方使用了[client-go](https://github.com/kubernetes/client-go/tree/master/tools/cache).更多的细节与机制在[这里](docs/controller-client-go.md)有说明.
 
+## 目标
 
-## Purpose
+说明如何构建一个kube-like(与kubernetes内部controller实现相同)的controller.
 
-This is an example of how to build a kube-like controller with a single type.
+## 运行
 
-## Running
-
-**Prerequisite**: Since the sample-controller uses `apps/v1` deployments, the Kubernetes cluster version should be greater than 1.9.
+**环境要求**: 因为sample-controller使用`apps/v1`版本deployment所以对Kubernetes集群的版本要求为大于1.9.
 
 ```sh
-# assumes you have a working kubeconfig, not required if operating in-cluster
+# 假设你已经准备好了kubeconfig,如果在集群内部则可以跳过
 go get k8s.io/sample-controller
 cd $GOPATH/src/k8s.io/sample-controller
 go build -o sample-controller .
 ./sample-controller -kubeconfig=$HOME/.kube/config
 
-# create a CustomResourceDefinition
+# 创建 CustomResourceDefinition
 kubectl create -f artifacts/examples/crd.yaml
 
-# create a custom resource of type Foo
+# 创建一个Foo资源
 kubectl create -f artifacts/examples/example-foo.yaml
 
-# check deployments created through the custom resource
+# 检查关联的deployment被创建
 kubectl get deployments
 ```
 
-## Use Cases
+## 使用场景
 
-CustomResourceDefinitions can be used to implement custom resource types for your Kubernetes cluster.
-These act like most other Resources in Kubernetes, and may be `kubectl apply`'d, etc.
+可以使用CustomResourceDefinition来实现用户自定义的资源类型,它们的行为表现将和kubernetes中的其他资源类型一致,并可以使用`kubectl apply`命令管理.
 
-Some example use cases:
+如下列一些场景:
 
-* Provisioning/Management of external datastores/databases (eg. CloudSQL/RDS instances)
-* Higher level abstractions around Kubernetes primitives (eg. a single Resource to define an etcd cluster, backed by a Service and a ReplicationController)
+* 创建/管理外部的数据存储/数据库(例如:CloudSQL/RDS实例)
+* 基于Kubernetes的原语进行抽象扩展(例如:基于Service和ReplicationController定义一个etcd集群资源类型)
 
-## Defining types
+## 类型定义
 
-Each instance of your custom resource has an attached Spec, which should be defined via a `struct{}` to provide data format validation.
-In practice, this Spec is arbitrary key-value data that specifies the configuration/behavior of your Resource.
+每一个用户资源实例都包含一个Spec,它可以通过`struct{}`来定义并被用来进行格式校验.
+实际中,Spec可以是随意的key-value数据来说明定义资源的配置与行为.
 
-For example, if you were implementing a custom resource for a Database, you might provide a DatabaseSpec like the following:
+例如,你实现一个Database的自定义资源,你可能声明如下的DatabaseSpec:
 
 ``` go
 type DatabaseSpec struct {
@@ -87,62 +77,55 @@ type User struct {
 }
 ```
 
-## Validation
+## 校验
 
-To validate custom resources, use the [`CustomResourceValidation`](https://kubernetes.io/docs/tasks/access-kubernetes-api/extend-api-custom-resource-definitions/#validation) feature.
+可以使用[`CustomResourceValidation`](https://kubernetes.io/docs/tasks/access-kubernetes-api/extend-api-custom-resource-definitions/#validation)功能
+使自定义资源支持校验.
 
-This feature is beta and enabled by default in v1.9.
+在v1.9版本中该功能处于beta阶段并默认开启.
 
-### Example
+### 例子
 
-The schema in [`crd-validation.yaml`](./artifacts/examples/crd-validation.yaml) applies the following validation on the custom resource:
-`spec.replicas` must be an integer and must have a minimum value of 1 and a maximum value of 10.
+在[`crd-validation.yaml`](./artifacts/examples/crd-validation.yaml)中指明了如下校验规则:
 
-In the above steps, use `crd-validation.yaml` to create the CRD:
+`spec.replicas`必须为整型并且最小值为1最大值为10.
+
+上述使用`crd-validation.yaml`创建CRD:
 
 ```sh
-# create a CustomResourceDefinition supporting validation
+# 创建CustomResourceDefinition支持校验
 kubectl create -f artifacts/examples/crd-validation.yaml
 ```
 
-## Subresources
+## 子资源
 
-Custom Resources support `/status` and `/scale` subresources as a [beta feature](https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#subresources) in v1.11 and is enabled by default.
-This feature is [alpha](https://v1-10.docs.kubernetes.io/docs/tasks/access-kubernetes-api/extend-api-custom-resource-definitions/#subresources) in v1.10 and to enable it you need to set the `CustomResourceSubresources` feature gate on the [kube-apiserver](https://kubernetes.io/docs/admin/kube-apiserver):
+在v1.11中默认开启了自定义资源支持`/status`和`/scale`子资源[beta功能](https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#subresources).
+
+在v1.10中该功能处于[alpha](https://v1-10.docs.kubernetes.io/docs/tasks/access-kubernetes-api/extend-api-custom-resource-definitions/#subresources),可以通过为[kube-apiserver](https://kubernetes.io/docs/admin/kube-apiserver)设置`CustomResourceSubresources`参数来开启.
 
 ```sh
 --feature-gates=CustomResourceSubresources=true
 ```
 
-### Example
+### 例子
 
-The CRD in [`crd-status-subresource.yaml`](./artifacts/examples/crd-status-subresource.yaml) enables the `/status` subresource
-for custom resources.
-This means that [`UpdateStatus`](./controller.go#L330) can be used by the controller to update only the status part of the custom resource.
+通过[`crd-status-subresource.yaml`](./artifacts/examples/crd-status-subresource.yaml)创建的CRD支持`/status`子资源.这意味着controller可以使用[`UpdateStatus`](./controller.go#L330)更新资源仅当status符合CRD定义时.
 
-To understand why only the status part of the custom resource should be updated, please refer to the [Kubernetes API conventions](https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status).
+更详细的说明可以参考这里[Kubernetes API conventions](https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status).
 
-In the above steps, use `crd-status-subresource.yaml` to create the CRD:
+上述使用`crd-status-subresource.yaml`创建CRD:
 
 ```sh
-# create a CustomResourceDefinition supporting the status subresource
+# 创建CustomResourceDefinition支持status子资源
 kubectl create -f artifacts/examples/crd-status-subresource.yaml
 ```
 
-## Cleanup
+## 清理
 
-You can clean up the created CustomResourceDefinition with:
+你可以清理掉创建的CustomResourceDefinition通过执行如下命令:
 
     kubectl delete crd foos.samplecontroller.k8s.io
 
-## Compatibility
+## 兼容
 
-HEAD of this repository will match HEAD of k8s.io/apimachinery and
-k8s.io/client-go.
-
-## Where does it come from?
-
-`sample-controller` is synced from
-https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/sample-controller.
-Code changes are made in that location, merged into k8s.io/kubernetes and
-later synced here.
+本库将更新跟随`k8s.io/apimachinery`与`k8s.io/client-go`.
