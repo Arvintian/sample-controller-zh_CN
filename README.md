@@ -4,7 +4,7 @@
 
 **提示**: go-get或者包引用请使用`k8s.io/sample-controller`地址
 
-本例演示了如下的基本操作:
+本例演示了如下的基本操作:
 
 * 如何使用CustomResourceDefinition注册一个新的用户资源类型
 * 如何create/get/list新资源类型实例
@@ -29,7 +29,7 @@ Sample controller 在很多地方使用了[client-go](https://github.com/kuberne
 
 ## 运行
 
-**环境要求**: 因为sample-controller使用`apps/v1`版本deployment所以对Kubernetes集群的版本要求为大于1.9.
+**环境要求**: 因为sample-controller使用`apps/v1`版本deployment所以对Kubernetes集群的版本要求为大于1.9.
 
 ```sh
 # 假设你已经准备好了kubeconfig,如果在集群内部则可以跳过
