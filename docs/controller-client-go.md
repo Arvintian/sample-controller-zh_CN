@@ -1,12 +1,8 @@
 # client-go under the hood
 
-The [client-go](https://github.com/kubernetes/client-go/) library contains various mechanisms that you can use when
-developing your custom controllers. These mechanisms are defined in the
-[tools/cache folder](https://github.com/kubernetes/client-go/tree/master/tools/cache) of the library.
+[client-go](https://github.com/kubernetes/client-go/)包含了一系列可用的构件为我们开发我们自己的controller,这些构件定义在[tools/cache folder](https://github.com/kubernetes/client-go/tree/master/tools/cache)
 
-Here is a pictorial representation showing how the various components in
-the client-go library work and their interaction points with the custom
-controller code that you will write.
+下图展示了这些构件如何与我们自己开发的controller在代码层面的交互
 
 <p align="center">
   <img src="images/client-go-controller-interaction.jpeg" height="600" width="700"/>
@@ -14,51 +10,33 @@ controller code that you will write.
 
 ## client-go components
 
-* Reflector: A reflector, which is defined in [type *Reflector* inside package *cache*](https://github.com/kubernetes/client-go/blob/master/tools/cache/reflector.go),
-watches the Kubernetes API for the specified resource type (kind).
-The function in which this is done is *ListAndWatch*.
-The watch could be for an in-built resource or it could be for a custom resource.
-When the reflector receives notification about existence of new
-resource instance through the watch API, it gets the newly created object
-using the corresponding listing API and puts it in the Delta Fifo queue
-inside the *watchHandler* function.
+* Reflector: 定义在[type *Reflector* inside package *cache*](https://github.com/kubernetes/client-go/blob/master/tools/cache/reflector.go),
+通过Kubernetes API监控特定资源,资源可以为kubernetes内建资源也可以是自定义资源.
+当reflector收到来自API的资源更新或创建通知,它将通过相应的API创建一个对象,并将它推入Delta Fifo队列.
 
+* Informer: 定义在[base controller inside package *cache*](https://github.com/kubernetes/client-go/blob/master/tools/cache/controller.go),
+它从Delta Fifo队列弹出一个对象保存下来,同时调用我们的controller并传递该对象.
 
-* Informer: An informer defined in the [base controller inside package *cache*](https://github.com/kubernetes/client-go/blob/master/tools/cache/controller.go) pops objects from the Delta Fifo queue.
-The function in which this is done is *processLoop*. The job of this base controller
-is to save the object for later retrieval, and to invoke our controller passing it the object.
-
-* Indexer: An indexer provides indexing functionality over objects.
-It is defined in [type *Indexer* inside package *cache*](https://github.com/kubernetes/client-go/blob/master/tools/cache/index.go). A typical indexing use-case is to create an index based on object labels. Indexer can
-maintain indexes based on several indexing functions.
-Indexer uses a thread-safe data store to store objects and their keys.
-There is a default function named *MetaNamespaceKeyFunc* defined in [type Store inside package cache](https://github.com/kubernetes/client-go/blob/master/tools/cache/store.go)
-that generates an object’s key as `<namespace>/<name>` combination for that object.
+* Indexer: 定义在[type *Indexer* inside package *cache*](https://github.com/kubernetes/client-go/blob/master/tools/cache/index.go).
+为对象提供索引功能,一个典型的使用场景是基于对象的labels创建索引.
+Indexer维护索引通过一系列的索引函数,并使用一个线程安全的池子保存对象和它们的key.
 
 
 ## Custom Controller components
 
-* Informer reference: This is the reference to the Informer instance that knows
-how to work with your custom resource objects. Your custom controller code needs
-to create the appropriate Informer.
+* Informer reference: Informer实例引用,
+需要我们在我们的controller代码中自己创建.
 
-* Indexer reference: This is the reference to the Indexer instance that knows
-how to work with your custom resource objects. Your custom controller code needs
-to create this. You will be using this reference for retrieving objects for
-later processing.
+* Indexer reference: Indexer实例引用,
+需要我们在我们的controller代码中自己创建,我们在执行处理过程中通过它来取回对象.
 
-The base controller in client-go provides the *NewIndexerInformer* function to create Informer and Indexer.
-In your code you can either [directly invoke this function](https://github.com/kubernetes/client-go/blob/master/examples/workqueue/main.go#L174) or [use factory methods for creating an informer.](https://github.com/kubernetes/sample-controller/blob/master/main.go#L61)
+在client-go中提供了*NewIndexerInformer*函数来创建Informer和Indexer.
+在我们代码中可以[直接调用](https://github.com/kubernetes/client-go/blob/master/examples/workqueue/main.go#L174)该函数或者使用[工厂方法](https://github.com/kubernetes/sample-controller/blob/master/main.go#L61)
 
-* Resource Event Handlers: These are the callback functions which will be called by
-the Informer when it wants to deliver an object to your controller. The typical
-pattern to write these functions is to obtain the dispatched object’s key
-and enqueue that key in a work queue for further processing.
+* Resource Event Handlers: 一系列调函数,通过它们Informer传递对象给我们的controller.
+一个典型的模式为该回调函数获得对象的key后将对象的key推入workqueue为接下来的处理.
 
-* Work queue: This is the queue that you create in your controller code to decouple
-delivery of an object from its processing. Resource event handler functions are written
-to extract the delivered object’s key and add that to the work queue.
+* Work queue: 解耦对象传递和对象处理过程的队列.
 
-* Process Item: This is the function that you create in your code which processes items
-from the work queue. There can be one or more other functions that do the actual processing.
-These functions will typically use the [Indexer reference](https://github.com/kubernetes/client-go/blob/master/examples/workqueue/main.go#L73), or a Listing wrapper to retrieve the object corresponding to the key.
+* Process Item: 对象具体的处理过程.
+其中一般会使用Indexer reference或者Listing包装函数通过对象key取回对象.
