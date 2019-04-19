@@ -23,9 +23,8 @@ import (
 
 var onlyOneSignalHandler = make(chan struct{})
 
-// SetupSignalHandler registered for SIGTERM and SIGINT. A stop channel is returned
-// which is closed on one of these signals. If a second signal is caught, the program
-// is terminated with exit code 1.
+// SetupSignalHandler 注册监听SIGTERM和SIGINT信号并返回一个stop channel
+// 当第一次捕获信号将关闭stop channel.当第二次捕获信号程序将退出并且推出代码为1.
 func SetupSignalHandler() (stopCh <-chan struct{}) {
 	close(onlyOneSignalHandler) // panics when called twice
 
@@ -36,7 +35,7 @@ func SetupSignalHandler() (stopCh <-chan struct{}) {
 		<-c
 		close(stop)
 		<-c
-		os.Exit(1) // second signal. Exit directly.
+		os.Exit(1) // 二次信号,直接退出
 	}()
 
 	return stop

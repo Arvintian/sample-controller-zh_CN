@@ -24,7 +24,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
-	// Uncomment the following line to load the gcp plugin (only required to authenticate against GKE clusters).
+	// 取消下行注释来加载gcp插件(仅当做GKE集群认证时)
 	// _ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 
 	clientset "k8s.io/sample-controller/pkg/generated/clientset/versioned"
@@ -40,7 +40,7 @@ var (
 func main() {
 	flag.Parse()
 
-	// set up signals so we handle the first shutdown signal gracefully
+	// 设置signals,捕获shutdown signal并和谐关闭
 	stopCh := signals.SetupSignalHandler()
 
 	cfg, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
@@ -65,8 +65,8 @@ func main() {
 		kubeInformerFactory.Apps().V1().Deployments(),
 		exampleInformerFactory.Samplecontroller().V1alpha1().Foos())
 
-	// notice that there is no need to run Start methods in a separate goroutine. (i.e. go kubeInformerFactory.Start(stopCh)
-	// Start method is non-blocking and runs all registered informers in a dedicated goroutine.
+	// 注意,这里不需要执行Strat在一个独立的goroutine(例如:go kubeInformerFactory.Start(stopCh))
+	// Start方法是非阻塞的,并且执行所有informer在特定的goroutine.
 	kubeInformerFactory.Start(stopCh)
 	exampleInformerFactory.Start(stopCh)
 
